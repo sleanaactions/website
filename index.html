@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus On - Đồng hồ Tập trung</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flipclock/0.7.8/flipclock.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flipclock/0.7.8/flipclock.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-color: #FF5252;
+            --secondary-color: #4CAF50;
+            --bg-color: #000;
+            --text-color: #fff;
+            --card-bg: rgba(0, 0, 0, 0.7);
+            --border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+        
+        .video-background video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+        
+        .draggable-container {
+            position: absolute;
+            z-index: 10;
+            cursor: move;
+            user-select: none;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 350px;
+            padding: 20px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .clock-container {
+            margin-bottom: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            position: relative;
+            padding-top: 5px;
+        }
+        
+        .clock {
+            width: auto;
+        }
+        
+        .flip-clock-wrapper ul {
+            width: 40px;
+            height: 60px;
+            margin: 0 2px;
+        }
+        
+        .flip-clock-wrapper ul li {
+            line-height: 60px;
+        }
+        
+        .flip-clock-wrapper ul li a div div.inn {
+            font-size: 45px;
+            background-color: #333;
+            color: #fff;
+            border-radius: 6px;
+        }
+        
+        .flip-clock-wrapper ul.flip {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        
+        .flip-clock-divider {
+            height: 60px;
+            width: 15px;
+        }
+        
+        .flip-clock-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #fff;
+            left: 3.5px;
+        }
+        
+        .flip-clock-dot.top {
+            top: 18px;
+        }
+        
+        .flip-clock-dot.bottom {
+            bottom: 18px;
+        }
+        
+        .flip-clock-label {
+            display: none;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 50px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn.primary {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .cycles-container {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .cycle-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .cycle-dot.active {
+            background: var(--primary-color);
+            box-shadow: 0 0 6px rgba(255, 82, 82, 0.5);
+        }
+        
+        .cycle-dot.completed {
+            background: var(--secondary-color);
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            box-shadow: 0 0 8px rgba(255, 82, 82, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .status-dot.break {
+            background: var(--secondary-color);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+        
+        .mode-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 20;
+        }
+        
+        .mode-indicator.work {
+            color: var(--primary-color);
+        }
+        
+        .mode-indicator.break {
+            color: var(--secondary-color);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            padding: 10px 16px;
+            background: rgba(30, 30, 30, 0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+            z-index: 100;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        audio {
+            display: none;
+        }
+        
+        @media (max-width: 480px) {
+            .flip-clock-wrapper ul {
+                width: 35px;
+                height: 50px;
+            }
+            
+            .flip-clock-wrapper ul li {
+                line-height: 50px;
+            }
+            
+            .flip-clock-wrapper ul li a div div.inn {
+                font-size: 38px;
+            }
+            
+            .flip-clock-divider {
+                height: 50px;
+                width: 12px;
+            }
+            
+            .flip-clock-dot {
+                width: 6px;
+                height: 6px;
+                left: 3px;
+            }
+            
+            .flip-clock-dot.top {
+                top: 15px;
+            }
+            
+            .flip-clock-dot.bottom {
+                bottom: 15px;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .cycle-dot {
+                width: 6px;
+                height: 6px;
+            }
+            
+            .status-dot {
+                width: 10px;
+                height: 10px;
+            }
+        }
+        
+        /* Focus Section - Tối giản */
+        .focus-section {
+            width: 100%;
+            margin-top: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 5px;
+        }
+        
+        .focus-section.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .focus-input-container {
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .focus-input {
+            flex: 1;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            color: var(--text-color);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        
+        .focus-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .focus-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--primary-color);
+        }
+        
+        .focus-btn {
+            background: var(--primary-color);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .focus-btn:hover {
+            background: #ff7171;
+            transform: scale(1.1);
+        }
+        
+        .focus-tasks {
+            width: 100%;
+            max-height: 10px;
+            overflow-y: auto;
+        }
+        
+        .focus-tasks::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .focus-tasks::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .focus-tasks::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .focus-task {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .focus-task:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .task-checkbox {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .task-checkbox.checked {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .task-checkbox i {
+            font-size: 8px;
+            color: #fff;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .task-checkbox.checked i {
+            opacity: 1;
+        }
+        
+        .task-text {
+            flex: 1;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        
+        .task-text.completed {
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+        
+        .task-delete {
+            opacity: 0;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            padding: 4px;
+            flex-shrink: 0;
+        }
+        
+        .focus-task:hover .task-delete {
+            opacity: 1;
+        }
+        
+        .task-delete:hover {
+            color: var(--primary-color);
+        }
+        
+        .focus-stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 5px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        
+        .focus-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 6px 12px;
+            color: var(--text-color);
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .focus-toggle:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .video-toggle {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 6px 12px;
+            color: var(--text-color);
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .video-toggle:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        /* Settings Panel - Đã chỉnh lại */
+        .settings-panel {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 16px;
+            width: 240px;
+            z-index: 20;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .settings-panel.active {
+            display: flex;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { 
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .settings-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .settings-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 14px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+        
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        
+        .setting-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .setting-label i {
+            font-size: 12px;
+            color: var(--primary-color);
+        }
+        
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .setting-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-color);
+            font-size: 12px;
+        }
+        
+        .setting-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .setting-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .setting-value {
+            min-width: 30px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .setting-unit {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .quote-container {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 0 20px;
+            z-index: 20;
+        }
+        
+        .quote {
+            font-style: italic;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
+        
+        .quote-author {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+        
+        .video-info {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .warning-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 12px 20px;
+            background: rgba(255, 152, 0, 0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+            z-index: 100;
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .warning-notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .completion-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            pointer-events: none;
+        }
+        
+        .completion-icon {
+            font-size: 80px;
+            color: var(--secondary-color);
+            opacity: 0;
+            transform: scale(0.5);
+            animation: completionPulse 1.5s ease-out forwards;
+        }
+        
+        @keyframes completionPulse {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.5);
+            }
+        }
+        
+        /* Clock Toggle Button - Fixed position */
+        .clock-toggle {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+        
+        .clock-toggle:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .clock-toggle i {
+            font-size: 14px;
+            color: var(--text-color);
+        }
+        
+        .clock-container.hidden {
+            display: none;
+        }
+        
+        .container.clock-hidden {
+            max-width: 300px;
+            padding: 15px;
+        }
+        
+        .show-clock-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 30;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(255, 82, 82, 0.4);
+        }
+        
+        .show-clock-btn:hover {
+            background: #ff7171;
+            transform: scale(1.1);
+        }
+        
+        .show-clock-btn.active {
+            display: flex;
+        }
+        
+        .show-clock-btn i {
+            font-size: 20px;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Background -->
+    <div class="video-background" id="video-background">
+        <video id="bg-video" autoplay muted loop>
+            <source src="https://firebasestorage.googleapis.com/v0/b/sleana-mod.appspot.com/o/video%2Failivewallpapers.com-gm4w234ko-2560x1440.mp4?alt=media&token=be424ca3-3cb8-483a-a38a-5edbd2d6b9cd" type="video/mp4">
+        </video>
+    </div>
+    
+    <div class="mode-indicator work" id="mode-indicator">Pomodoro</div>
+    
+    <!-- Focus Toggle Button -->
+    <div class="focus-toggle" id="focus-toggle">
+        <i class="fas fa-brain"></i> Focus Mode
+    </div>
+    
+    <!-- Video Toggle Button -->
+    <div class="video-toggle" id="video-toggle">
+        <i class="fas fa-video"></i> Video On
+    </div>
+    
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <div class="settings-title">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </div>
+            <button class="settings-close" id="settings-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="setting-group">
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-briefcase"></i>
+                    <span>Thời gian làm việc</span>
+                </div>
+                <div class="setting-control">
+                    <button class="setting-btn" id="work-decrease">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div class="setting-value" id="work-time">25</div>
+                    <button class="setting-btn" id="work-increase">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <span class="setting-unit">phút</span>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-coffee"></i>
+                    <span>Nghỉ ngắn</span>
+                </div>
+                <div class="setting-control">
+                    <button class="setting-btn" id="short-decrease">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div class="setting-value" id="short-time">5</div>
+                    <button class="setting-btn" id="short-increase">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <span class="setting-unit">phút</span>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-bed"></i>
+                    <span>Nghỉ dài</span>
+                </div>
+                <div class="setting-control">
+                    <button class="setting-btn" id="long-decrease">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div class="setting-value" id="long-time">15</div>
+                    <button class="setting-btn" id="long-increase">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <span class="setting-unit">phút</span>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-redo"></i>
+                    <span>Số Pomodoros</span>
+                </div>
+                <div class="setting-control">
+                    <button class="setting-btn" id="pomodoro-decrease">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div class="setting-value" id="pomodoro-count">4</div>
+                    <button class="setting-btn" id="pomodoro-increase">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <span class="setting-unit">chu kỳ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="draggable-container" id="draggable-container">
+        <div class="container">
+            <div class="clock-container" id="clock-container">
+                <div class="clock" id="clock"></div>
+                <div class="clock-toggle" id="clock-toggle">
+                    <i class="fas fa-eye-slash"></i>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn primary" id="start-btn">
+                    <i class="fas fa-play"></i> Start
+                </button>
+                <button class="btn" id="pause-btn" style="display: none;">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button class="btn" id="reset-btn">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+            
+            <!-- Focus Section - Tối giản -->
+            <div class="focus-section" id="focus-section">
+                <div class="focus-input-container">
+                    <input type="text" class="focus-input" id="focus-input" placeholder="Mục tiêu của bạn...">
+                    <button class="focus-btn" id="add-focus-btn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="focus-tasks" id="focus-tasks">
+                    <!-- Tasks will be added here dynamically -->
+                </div>
+                
+                <div class="focus-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="completed-tasks">0</div>
+                        <div class="stat-label">Hoàn thành</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-pomodoros">0</div>
+                        <div class="stat-label">Pomodoros</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="focus-time">0</div>
+                        <div class="stat-label">Phút</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-container">
+                <div class="cycles-container" id="cycles-container">
+                    <div class="cycle-dot active" data-cycle="1"></div>
+                    <div class="cycle-dot" data-cycle="2"></div>
+                    <div class="cycle-dot" data-cycle="3"></div>
+                    <div class="cycle-dot" data-cycle="4"></div>
+                </div>
+                <div class="status-dot" id="status-dot"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Show Clock Button -->
+    <div class="show-clock-btn" id="show-clock-btn">
+        <i class="fas fa-clock"></i>
+    </div>
+    
+    <!-- Video Info -->
+    <div class="video-info" id="video-info">
+        <i class="fas fa-info-circle"></i>
+        <span id="current-video-name">Anime Wallpaper</span>
+    </div>
+    
+    <!-- Quote Container -->
+    <div class="quote-container">
+        <div class="quote" id="quote">"Sự tập trung là khả năng tập trung toàn bộ tâm trí vào một nhiệm vụ duy nhất và duy trì nó trong một khoảng thời gian."</div>
+        <div class="quote-author" id="quote-author">- Brian Tracy</div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- Warning Notification -->
+    <div class="warning-notification" id="warning-notification">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="warning-message">Sắp hết thời gian!</span>
+    </div>
+    
+    <audio id="bellAudio" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
+    <audio id="warningAudio" src="https://assets.mixkit.co/sfx/preview/mixkit-classic-alarm-995.mp3"></audio>
+    <audio id="completionAudio" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3"></audio>
+    
+    <div class="completion-animation" id="completion-animation" style="display: none;">
+        <div class="completion-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+    // Global variables
+    var clock;
+    var fullscreen = false;
+    var manuallyStopped = false;
+    var focusMode = false;
+    var completedTasks = 0;
+    var totalPomodoros = 0;
+    var totalFocusTime = 0;
+    var warningShown = false;
+    var videoEnabled = true;
+    var clockVisible = true;
+    
+    // Pomodoro settings
+    var pomodoroSettings = {
+        workTime: 25,
+        shortBreak: 5,
+        longBreak: 15,
+        pomodoroCount: 4,
+        currentPomodoro: 1,
+        isWorking: true,
+        isBreak: false,
+        autoTransition: true
+    };
+    
+    // Focus quotes
+    var quotes = [
+        { text: "Sự tập trung là khả năng tập trung toàn bộ tâm trí vào một nhiệm vụ duy nhất và duy trì nó trong một khoảng thời gian.", author: "Brian Tracy" },
+        { text: "Sự tập trung cao độ có thể vượt qua tài năng, trí thông minh và sự khéo léo trong việc tạo ra sự xuất sắc.", author: "Tony Robbins" },
+        { text: "Bạn không thể làm mọi việc cùng một lúc. Hãy tập trung vào một nhiệm vụ tại một thời điểm.", author: "Anne Lamott" },
+        { text: "Sự tập trung là bí quyết của sự xuất sắc. Và sự tập trung này có thể được học hỏi.", author: "Mary Kay Ash" },
+        { text: "Hầu hết mọi người không lắng nghe với ý định hiểu; họ lắng nghe với ý định trả lời.", author: "Stephen R. Covey" },
+        { text: "Sự tập trung là một loại từ bỏ. Khi bạn tập trung vào một việc, bạn đang từ bỏ tất cả những thứ khác.", author: "Cal Newport" },
+        { text: "Sự tập trung không phải là một thứ bạn có, mà là một thứ bạn làm.", author: "Unknown" },
+        { text: "Sự tập trung là một kỹ năng có thể được rèn luyện và phát triển.", author: "Unknown" },
+        { text: "Sự tập trung đòi hỏi sự kiên nhẫn và thực hành. Đừng nản lòng nếu bạn dễ bị phân tâm.", author: "Unknown" },
+        { text: "Khi bạn tập trung vào những điều tốt đẹp, bạn sẽ tạo ra những điều tốt đẹp.", author: "Unknown" }
+    ];
+    
+    $(document).ready(function() {
+        // Load settings from localStorage
+        loadSettings();
+        
+        // Initialize the clock
+        initializeClock();
+        
+        // Update status display
+        updatePomodoroStatus();
+        updateModeIndicator();
+        updateCycleDots();
+        
+        // Make the container draggable
+        makeDraggable();
+        
+        // Load saved tasks
+        loadTasks();
+        
+        // Load stats
+        loadStats();
+        
+        // Event handlers
+        setupEventHandlers();
+        
+        // Show a random quote
+        showRandomQuote();
+        
+        // Check for video preference
+        checkVideoPreference();
+        
+        // Handle video loading error
+        $("#bg-video").on("error", function() {
+            console.log("Video loading error");
+        });
+    });
+    
+    function setupEventHandlers() {
+        // Double click to toggle fullscreen
+        $("body").dblclick(function (){
+            toggleFullscreen();
+        });
+        
+        // Start button click
+        $("#start-btn").click(function() {
+            manuallyStopped = false;
+            warningShown = false;
+            clock.start();
+            $("#start-btn").hide();
+            $("#pause-btn").show();
+            
+            if (focusMode) {
+                startFocusSession();
+            }
+        });
+        
+        // Pause button click
+        $("#pause-btn").click(function() {
+            manuallyStopped = true;
+            clock.stop();
+            $("#pause-btn").hide();
+            $("#start-btn").show();
+        });
+        
+        // Reset button click
+        $("#reset-btn").click(function() {
+            resetClock();
+            warningShown = false;
+            manuallyStopped = true;
+            clock.stop();
+            $("#start-btn").show();
+            $("#pause-btn").hide();
+        });
+        
+        // Focus toggle button click
+        $("#focus-toggle").click(function() {
+            toggleFocusMode();
+        });
+        
+        // Video toggle button click
+        $("#video-toggle").click(function() {
+            toggleVideo();
+        });
+        
+        // Clock toggle button click
+        $("#clock-toggle").click(function() {
+            toggleClockVisibility();
+        });
+        
+        // Show clock button click
+        $("#show-clock-btn").click(function() {
+            showClock();
+        });
+        
+        // Add focus button click
+        $("#add-focus-btn").click(function() {
+            addTask();
+        });
+        
+        // Focus input enter key
+        $("#focus-input").keypress(function(e) {
+            if (e.which == 13) {
+                addTask();
+            }
+        });
+        
+        // Settings controls
+        $("#work-decrease").click(function() {
+            if (pomodoroSettings.workTime > 1) {
+                pomodoroSettings.workTime--;
+                $("#work-time").text(pomodoroSettings.workTime);
+                saveSettings();
+                if (!clock.running) {
+                    resetClock();
+                }
+            }
+        });
+        
+        $("#work-increase").click(function() {
+            if (pomodoroSettings.workTime < 60) {
+                pomodoroSettings.workTime++;
+                $("#work-time").text(pomodoroSettings.workTime);
+                saveSettings();
+                if (!clock.running) {
+                    resetClock();
+                }
+            }
+        });
+        
+        $("#short-decrease").click(function() {
+            if (pomodoroSettings.shortBreak > 1) {
+                pomodoroSettings.shortBreak--;
+                $("#short-time").text(pomodoroSettings.shortBreak);
+                saveSettings();
+            }
+        });
+        
+        $("#short-increase").click(function() {
+            if (pomodoroSettings.shortBreak < 15) {
+                pomodoroSettings.shortBreak++;
+                $("#short-time").text(pomodoroSettings.shortBreak);
+                saveSettings();
+            }
+        });
+        
+        $("#long-decrease").click(function() {
+            if (pomodoroSettings.longBreak > 5) {
+                pomodoroSettings.longBreak--;
+                $("#long-time").text(pomodoroSettings.longBreak);
+                saveSettings();
+            }
+        });
+        
+        $("#long-increase").click(function() {
+            if (pomodoroSettings.longBreak < 30) {
+                pomodoroSettings.longBreak++;
+                $("#long-time").text(pomodoroSettings.longBreak);
+                saveSettings();
+            }
+        });
+        
+        $("#pomodoro-decrease").click(function() {
+            if (pomodoroSettings.pomodoroCount > 2) {
+                pomodoroSettings.pomodoroCount--;
+                $("#pomodoro-count").text(pomodoroSettings.pomodoroCount);
+                saveSettings();
+                updateCycleDots();
+            }
+        });
+        
+        $("#pomodoro-increase").click(function() {
+            if (pomodoroSettings.pomodoroCount < 8) {
+                pomodoroSettings.pomodoroCount++;
+                $("#pomodoro-count").text(pomodoroSettings.pomodoroCount);
+                saveSettings();
+                updateCycleDots();
+            }
+        });
+        
+        // Close settings panel when clicking outside
+        $(document).click(function(e) {
+            if (!$(e.target).closest('#settings-btn, #settings-panel, #settings-close').length) {
+                $("#settings-panel").removeClass("active");
+            }
+        });
+    }
+    
+    function toggleClockVisibility() {
+        var clockContainer = $("#clock-container");
+        var container = $(".container");
+        var showClockBtn = $("#show-clock-btn");
+        var toggleIcon = $("#clock-toggle i");
+        
+        if (clockVisible) {
+            clockContainer.addClass("hidden");
+            container.addClass("clock-hidden");
+            showClockBtn.addClass("active");
+            toggleIcon.removeClass("fa-eye-slash");
+            toggleIcon.addClass("fa-eye");
+            clockVisible = false;
+        } else {
+            showClock();
+        }
+    }
+    
+    function showClock() {
+        var clockContainer = $("#clock-container");
+        var container = $(".container");
+        var showClockBtn = $("#show-clock-btn");
+        var toggleIcon = $("#clock-toggle i");
+        
+        clockContainer.removeClass("hidden");
+        container.removeClass("clock-hidden");
+        showClockBtn.removeClass("active");
+        toggleIcon.removeClass("fa-eye");
+        toggleIcon.addClass("fa-eye-slash");
+        clockVisible = true;
+    }
+    
+    function toggleFocusMode() {
+        focusMode = !focusMode;
+        $("#focus-section").toggleClass("active");
+        
+        if (focusMode) {
+            $("#focus-toggle").html('<i class="fas fa-times"></i> Thoát');
+            showNotification("Đã bật Focus Mode");
+        } else {
+            $("#focus-toggle").html('<i class="fas fa-brain"></i> Focus Mode');
+            showNotification("Đã tắt Focus Mode");
+        }
+    }
+    
+    function toggleVideo() {
+        videoEnabled = !videoEnabled;
+        
+        if (videoEnabled) {
+            $("#video-background").show();
+            $("#video-toggle").html('<i class="fas fa-video"></i> Video On');
+            $("#bg-video")[0].play();
+        } else {
+            $("#video-background").hide();
+            $("#video-toggle").html('<i class="fas fa-video-slash"></i> Video Off');
+            $("#bg-video")[0].pause();
+        }
+        
+        localStorage.setItem("videoEnabled", videoEnabled);
+    }
+    
+    function checkVideoPreference() {
+        var savedVideoPref = localStorage.getItem("videoEnabled");
+        
+        if (savedVideoPref !== null) {
+            videoEnabled = savedVideoPref === "true";
+            
+            if (videoEnabled) {
+                $("#video-background").show();
+                $("#video-toggle").html('<i class="fas fa-video"></i> Video On');
+            } else {
+                $("#video-background").hide();
+                $("#video-toggle").html('<i class="fas fa-video-slash"></i> Video Off');
+            }
+        }
+    }
+    
+    function addTask() {
+        var taskText = $("#focus-input").val().trim();
+        
+        if (taskText === "") {
+            showNotification("Vui lòng nhập mục tiêu");
+            return;
+        }
+        
+        var taskId = Date.now();
+        var taskHtml = `
+            <div class="focus-task" data-task-id="${taskId}">
+                <div class="task-checkbox" data-task-id="${taskId}">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="task-text" data-task-id="${taskId}">${taskText}</div>
+                <button class="task-delete" data-task-id="${taskId}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        $("#focus-tasks").append(taskHtml);
+        $("#focus-input").val("");
+        
+        // Add event listeners to the new task
+        $(`.task-checkbox[data-task-id="${taskId}"]`).click(function() {
+            toggleTaskComplete(taskId);
+        });
+        
+        $(`.task-delete[data-task-id="${taskId}"]`).click(function() {
+            deleteTask(taskId);
+        });
+        
+        // Save tasks to localStorage
+        saveTasks();
+        
+        showNotification("Đã thêm mục tiêu");
+    }
+    
+    function toggleTaskComplete(taskId) {
+        var checkbox = $(`.task-checkbox[data-task-id="${taskId}"]`);
+        var taskText = $(`.task-text[data-task-id="${taskId}"]`);
+        
+        checkbox.toggleClass("checked");
+        taskText.toggleClass("completed");
+        
+        if (checkbox.hasClass("checked")) {
+            completedTasks++;
+            showNotification("Hoàn thành! 🎉");
+            playCompletionSound();
+            showCompletionAnimation();
+        } else {
+            completedTasks--;
+        }
+        
+        updateStats();
+        saveTasks();
+    }
+    
+    function deleteTask(taskId) {
+        var task = $(`.focus-task[data-task-id="${taskId}"]`);
+        
+        // If task was completed, decrement counter
+        if ($(`.task-checkbox[data-task-id="${taskId}"]`).hasClass("checked")) {
+            completedTasks--;
+        }
+        
+        task.remove();
+        updateStats();
+        saveTasks();
+        showNotification("Đã xóa");
+    }
+    
+    function saveTasks() {
+        var tasks = [];
+        
+        $(".focus-task").each(function() {
+            var taskId = $(this).data("task-id");
+            var taskText = $(`.task-text[data-task-id="${taskId}"]`).text();
+            var isCompleted = $(`.task-checkbox[data-task-id="${taskId}"]`).hasClass("checked");
+            
+            tasks.push({
+                id: taskId,
+                text: taskText,
+                completed: isCompleted
+            });
+        });
+        
+        localStorage.setItem("focusTasks", JSON.stringify(tasks));
+    }
+    
+    function loadTasks() {
+        var savedTasks = localStorage.getItem("focusTasks");
+        
+        if (savedTasks) {
+            try {
+                var tasks = JSON.parse(savedTasks);
+                
+                tasks.forEach(function(task) {
+                    var taskHtml = `
+                        <div class="focus-task" data-task-id="${task.id}">
+                            <div class="task-checkbox ${task.completed ? 'checked' : ''}" data-task-id="${task.id}">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="task-text ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">${task.text}</div>
+                            <button class="task-delete" data-task-id="${task.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    $("#focus-tasks").append(taskHtml);
+                    
+                    // Add event listeners to the task
+                    $(`.task-checkbox[data-task-id="${task.id}"]`).click(function() {
+                        toggleTaskComplete(task.id);
+                    });
+                    
+                    $(`.task-delete[data-task-id="${task.id}"]`).click(function() {
+                        deleteTask(task.id);
+                    });
+                    
+                    // Update completed tasks count
+                    if (task.completed) {
+                        completedTasks++;
+                    }
+                });
+            } catch (e) {
+                console.error("Error loading tasks:", e);
+            }
+        }
+    }
+    
+    function updateStats() {
+        $("#completed-tasks").text(completedTasks);
+        $("#total-pomodoros").text(totalPomodoros);
+        $("#focus-time").text(totalFocusTime);
+    }
+    
+    function startFocusSession() {
+        if (pomodoroSettings.isWorking) {
+            totalPomodoros++;
+            totalFocusTime += pomodoroSettings.workTime;
+        }
+        
+        updateStats();
+        saveStats();
+    }
+    
+    function saveStats() {
+        var stats = {
+            completedTasks: completedTasks,
+            totalPomodoros: totalPomodoros,
+            totalFocusTime: totalFocusTime
+        };
+        
+        localStorage.setItem("focusStats", JSON.stringify(stats));
+    }
+    
+    function loadStats() {
+        var savedStats = localStorage.getItem("focusStats");
+        
+        if (savedStats) {
+            try {
+                var stats = JSON.parse(savedStats);
+                completedTasks = stats.completedTasks || 0;
+                totalPomodoros = stats.totalPomodoros || 0;
+                totalFocusTime = stats.totalFocusTime || 0;
+                
+                updateStats();
+            } catch (e) {
+                console.error("Error loading stats:", e);
+            }
+        }
+    }
+    
+    function saveSettings() {
+        localStorage.setItem("pomodoroSettings", JSON.stringify(pomodoroSettings));
+    }
+    
+    function loadSettings() {
+        var savedSettings = localStorage.getItem("pomodoroSettings");
+        
+        if (savedSettings) {
+            try {
+                var settings = JSON.parse(savedSettings);
+                pomodoroSettings = {
+                    workTime: settings.workTime || 25,
+                    shortBreak: settings.shortBreak || 5,
+                    longBreak: settings.longBreak || 15,
+                    pomodoroCount: settings.pomodoroCount || 4,
+                    currentPomodoro: 1,
+                    isWorking: true,
+                    isBreak: false,
+                    autoTransition: true
+                };
+                
+                // Update UI
+                $("#work-time").text(pomodoroSettings.workTime);
+                $("#short-time").text(pomodoroSettings.shortBreak);
+                $("#long-time").text(pomodoroSettings.longBreak);
+                $("#pomodoro-count").text(pomodoroSettings.pomodoroCount);
+            } catch (e) {
+                console.error("Error loading settings:", e);
+            }
+        }
+    }
+    
+    function showRandomQuote() {
+        var randomIndex = Math.floor(Math.random() * quotes.length);
+        var quote = quotes[randomIndex];
+        
+        $("#quote").text(`"${quote.text}"`);
+        $("#quote-author").text(`- ${quote.author}`);
+    }
+    
+    function toggleFullscreen() {
+        if (fullscreen) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitCancelFullScreen) {
+                document.webkitCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            fullscreen = false;
+        } else {
+            var docElm = document.documentElement;
+            if (docElm.requestFullscreen) {
+                docElm.requestFullscreen();
+            } else if (docElm.mozRequestFullScreen) {
+                docElm.mozRequestFullScreen();
+            } else if (docElm.webkitRequestFullScreen) {
+                docElm.webkitRequestFullScreen();
+            } else if (docElm.msRequestFullscreen) {
+                docElm.msRequestFullscreen();
+            }
+            fullscreen = true;
+        }
+    }
+    
+    function initializeClock() {
+        // Set countdown to work time (in seconds)
+        var countdownSeconds = pomodoroSettings.workTime * 60;
+        
+        // Destroy existing clock if it exists
+        if (clock) {
+            clock.stop();
+            clock = null;
+            $('#clock').empty();
+        }
+        
+        // Initialize countdown clock
+        clock = $('.clock').FlipClock(countdownSeconds, {
+            clockFace: 'MinuteCounter',
+            countdown: true,
+            autoStart: false,
+            callbacks: {
+                interval: function() {
+                    // Check if we're in the last 5 minutes
+                    var currentTime = clock.getTime().time;
+                    if (currentTime <= 300 && currentTime > 0 && !warningShown && pomodoroSettings.isWorking) {
+                        showWarningNotification();
+                        warningShown = true;
+                    }
+                },
+                stop: function() {
+                    // Only auto transition if not manually stopped
+                    if (!manuallyStopped && pomodoroSettings.autoTransition) {
+                        nextPomodoroPhase();
+                    } else {
+                        // Show notification when timer ends
+                        if (!manuallyStopped) {
+                            showNotification(pomodoroSettings.isWorking ? "Thời gian học đã kết thúc!" : "Thời gian nghỉ đã kết thúc!");
+                            playSound();
+                            $("#pause-btn").hide();
+                            $("#start-btn").show();
+                        }
+                        manuallyStopped = false;
+                    }
+                }
+            }
+        });
+    }
+    
+    function resetClock() {
+        manuallyStopped = false;
+        warningShown = false;
+        var seconds = pomodoroSettings.isWorking ? 
+            pomodoroSettings.workTime * 60 : 
+            (pomodoroSettings.currentPomodoro % pomodoroSettings.pomodoroCount === 0 ? 
+                pomodoroSettings.longBreak * 60 : 
+                pomodoroSettings.shortBreak * 60);
+                
+        clock.setTime(seconds);
+        clock.stop();
+        updatePomodoroStatus();
+        updateModeIndicator();
+        updateCycleDots();
+    }
+    
+    function nextPomodoroPhase() {
+        if (pomodoroSettings.isWorking) {
+            // Switch to break
+            pomodoroSettings.isWorking = false;
+            pomodoroSettings.isBreak = true;
+            
+            // Check if it's time for a long break
+            if (pomodoroSettings.currentPomodoro % pomodoroSettings.pomodoroCount === 0) {
+                // Long break
+                clock.setTime(pomodoroSettings.longBreak * 60);
+                showNotification("Thời gian học đã kết thúc! Bắt đầu nghỉ dài.");
+            } else {
+                // Short break
+                clock.setTime(pomodoroSettings.shortBreak * 60);
+                showNotification("Thời gian học đã kết thúc! Bắt đầu nghỉ ngắn.");
+            }
+        } else {
+            // Switch back to work
+            pomodoroSettings.isWorking = true;
+            pomodoroSettings.isBreak = false;
+            
+            // Increment pomodoro counter
+            if (pomodoroSettings.currentPomodoro % pomodoroSettings.pomodoroCount === 0) {
+                pomodoroSettings.currentPomodoro = 1;
+            } else {
+                pomodoroSettings.currentPomodoro++;
+            }
+            
+            clock.setTime(pomodoroSettings.workTime * 60);
+            showNotification("Thời gian nghỉ đã kết thúc! Bắt đầu học tập.");
+        }
+        
+        clock.start();
+        updatePomodoroStatus();
+        updateModeIndicator();
+        updateCycleDots();
+        playSound();
+    }
+    
+    function updatePomodoroStatus() {
+        // Update status dot
+        var statusDot = $("#status-dot");
+        
+        if (pomodoroSettings.isWorking) {
+            statusDot.removeClass("break");
+        } else {
+            statusDot.addClass("break");
+        }
+    }
+    
+    function updateCycleDots() {
+        // Clear all dots
+        $(".cycle-dot").removeClass("active completed");
+        
+        // Update dots based on current pomodoro
+        for (var i = 1; i <= pomodoroSettings.pomodoroCount; i++) {
+            var dot = $(`.cycle-dot[data-cycle="${i}"]`);
+            
+            if (i < pomodoroSettings.currentPomodoro) {
+                // Completed pomodoros
+                dot.addClass("completed");
+            } else if (i === pomodoroSettings.currentPomodoro && pomodoroSettings.isWorking) {
+                // Current pomodoro
+                dot.addClass("active");
+            }
+        }
+    }
+    
+    function updateModeIndicator() {
+        var indicator = $("#mode-indicator");
+        if (pomodoroSettings.isWorking) {
+            indicator.text("Pomodoro");
+            indicator.removeClass("break");
+            indicator.addClass("work");
+        } else {
+            if (pomodoroSettings.currentPomodoro % pomodoroSettings.pomodoroCount === 0) {
+                indicator.text("Nghỉ Dài");
+            } else {
+                indicator.text("Nghỉ Ngắn");
+            }
+            indicator.removeClass("work");
+            indicator.addClass("break");
+        }
+    }
+    
+    function playSound() {
+        var audioElement = document.getElementById('bellAudio');
+        if (audioElement) {
+            // Reset audio to beginning and play
+            audioElement.currentTime = 0;
+            
+            // Create a promise to handle the play() method
+            var playPromise = audioElement.play();
+            
+            // Check if the browser supports the promise
+            if (playPromise !== undefined) {
+                playPromise.then(function() {
+                    // Playback started successfully
+                }).catch(function(error) {
+                    console.log("Audio play error:", error);
+                    
+                    // Try to play audio after user interaction
+                    document.addEventListener('click', function playAudioAfterClick() {
+                        audioElement.play().then(function() {
+                            // Remove the event listener after successful playback
+                            document.removeEventListener('click', playAudioAfterClick);
+                        }).catch(function(e) {
+                            console.log("Audio still failed to play after click:", e);
+                        });
+                    }, { once: true });
+                });
+            }
+        }
+    }
+    
+    function playCompletionSound() {
+        var audioElement = document.getElementById('completionAudio');
+        if (audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play().catch(function(error) {
+                console.log("Completion audio play error:", error);
+            });
+        }
+    }
+    
+    function showWarningNotification() {
+        var warningNotification = $("#warning-notification");
+        warningNotification.addClass("show");
+        
+        setTimeout(function() {
+            warningNotification.removeClass("show");
+        }, 5000);
+        
+        // Play warning sound
+        var audioElement = document.getElementById('warningAudio');
+        if (audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play().catch(function(error) {
+                console.log("Warning audio play error:", error);
+            });
+        }
+    }
+    
+    function showCompletionAnimation() {
+        var animation = $("#completion-animation");
+        animation.show();
+        
+        setTimeout(function() {
+            animation.hide();
+        }, 1500);
+    }
+    
+    function showNotification(message) {
+        var notification = $("#notification");
+        notification.text(message);
+        notification.addClass("show");
+        
+        setTimeout(function() {
+            notification.removeClass("show");
+        }, 3000);
+    }
+    
+    function makeDraggable() {
+        var draggable = $('#draggable-container');
+        var position = { x: 0, y: 0 };
+        
+        // Center the container by default
+        var windowWidth = $(window).width();
+        var windowHeight = $(window).height();
+        var containerWidth = draggable.width();
+        var containerHeight = draggable.height();
+        
+        position.x = (windowWidth - containerWidth) / 2;
+        position.y = (windowHeight - containerHeight) / 2;
+        
+        draggable.css({
+            left: position.x + 'px',
+            top: position.y + 'px'
+        });
+        
+        draggable.on('mousedown', function(e) {
+            // Only drag if not clicking on a button or input
+            if ($(e.target).is('button, input, .cycle-dot, .status-dot, .flip-clock-wrapper, .focus-task, .task-checkbox, .task-delete, .setting-btn, .clock-toggle')) {
+                return;
+            }
+            
+            var offsetX = e.clientX - position.x;
+            var offsetY = e.clientY - position.y;
+            
+            $(document).on('mousemove', function(e) {
+                position.x = e.clientX - offsetX;
+                position.y = e.clientY - offsetY;
+                
+                // Keep within viewport
+                var windowWidth = $(window).width();
+                var windowHeight = $(window).height();
+                var containerWidth = draggable.width();
+                var containerHeight = draggable.height();
+                
+                
+                position.y = Math.max(0, Math.min(position.y, windowHeight - containerHeight));
+                
+                draggable.css({
+                    left: position.x + 'px',
+                    top: position.y + 'px'
+                });
+            });
+            
+            $(document).on('mouseup', function() {
+                $(document).off('mousemove');
+                $(document).off('mouseup');
+            });
+            
+            e.preventDefault();
+        });
+    }
+    </script>
+</body>
+</html>
